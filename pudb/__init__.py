@@ -77,16 +77,44 @@ def _tty_override():
 
 def _open_tty(tty_path):
     import io
-    import os
     import sys
+
     if sys.version_info[0] == 2:
         tty_file = open(tty_path, 'r+b', buffering=0)
-        term_size = None
     else:
         tty_file = io.TextIOWrapper(open(tty_path, 'r+b', buffering=0))
-        term_size = os.get_terminal_size(tty_file.fileno())
+    term_size = _get_term_size(tty_file)
 
     return tty_file, term_size
+
+
+def _get_term_size(fd):
+    """
+    Returns the terminal size. ``fd`` can be and integer or a file
+    object providing a ``fileno()`` method.
+    """
+    import fcntl
+    import os
+    import struct
+    import sys
+    import termios
+
+    term_size = None
+
+    if sys.version_info[0] == 2 or tuple(sys.version_info) < (3, 3):
+        try:
+            # Getting terminal size
+            s = struct.unpack(
+                'hh', fcntl.ioctl(fd, termios.TIOCGWINSZ, '1234'))
+            term_size = (s[1], s[0])
+        except Exception:
+            term_size = (80, 24)
+    else:
+        if hasattr(fd, 'fileno'):
+            fd = fd.fileno()
+        term_size = os.get_terminal_size(fd)
+
+    return term_size
 
 
 def _get_debugger(**kwargs):

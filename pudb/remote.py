@@ -35,10 +35,8 @@ import errno
 import os
 import socket
 import sys
-import fcntl
-import termios
-import struct
 
+from pudb import _get_term_size
 from pudb.debugger import Debugger
 
 __all__ = ['PUDB_RDB_HOST', 'PUDB_RDB_PORT', 'default_port',
@@ -185,11 +183,6 @@ def set_trace(frame=None, term_size=None, host=PUDB_RDB_HOST, port=PUDB_RDB_PORT
     if frame is None:
         frame = _frame().f_back
     if term_size is None:
-        try:
-            # Getting terminal size
-            s = struct.unpack('hh', fcntl.ioctl(1, termios.TIOCGWINSZ, '1234'))
-            term_size = (s[1], s[0])
-        except Exception:
-            term_size = (80, 24)
+        term_size = _get_term_size(1)
 
     return debugger(term_size=term_size, host=host, port=port).set_trace(frame)
